@@ -19,16 +19,11 @@ import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="4"
 
-pca = torch.FloatTensor(np.load('MNIST_pca_axes.npy')).cuda()
-#print(pca.size())
-
-from batch_algebra import *
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='AUTO MNIST Example')
     parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 128)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
+    parser.add_argument('--epochs', type=int, default=1000, metavar='N',
                         help='number of epochs to train (default: 10)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='enables CUDA training')
@@ -36,7 +31,7 @@ if __name__ == "__main__":
                         help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--hidden', type=int, default=20, metavar='N', 
+    parser.add_argument('--hidden', type=int, default=10, metavar='N', 
                         help='info. bottleneck dimensionality')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -55,7 +50,7 @@ if __name__ == "__main__":
         datasets.MNIST('../data', train=False, transform=transforms.ToTensor()),
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
-class AUto(nn.Module):
+class AUTO(nn.Module):
     def __init__(self):
         super(AUTO, self).__init__()
 
