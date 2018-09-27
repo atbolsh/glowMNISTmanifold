@@ -6,12 +6,8 @@ Uses GLOW.
 This time, we have a spatially smooth 2d distribution to model.
 """
 
-import distribution2D as d2
-
-#from nln import nLayer
-#from nln import backLayer
 from LU  import *
-from affine2Dorig import *
+from affine import *
 from actnorm import *
 
 from sklearn.datasets import load_boston
@@ -40,17 +36,19 @@ os.environ["CUDA_VISIBLE_DEVICES"]="1"
 #Build the network
 
 class flowGAN(nn.Module):
-    def __init__(self, n):
+    def __init__(self, n, k = 10, backend=64):
         """Even n preferred"""
+        self.n = n
+        self.k = k
         super(flowGAN, self).__init__()
-        self.lin  = nn.ModuleList([LU(2) for i in range(n+1)])
-        self.norm = nn.ModuleList([ActNorm(2) for i in range(n)])
+        self.lin  = nn.ModuleList([LU(k) for i in range(n+1)])
+        self.norm = nn.ModuleList([ActNorm(k) for i in range(n)])
         aff = []
         for i in range(n):
             if i % 2 == 0:
-                aff.append(affine2(2, hidden=512))
+                aff.append(affineDiscrete(k, hidden=backend))
             else:
-                aff.append(affine2(2, hidden=512))
+                aff.append(affineDiscrete(k, hidden=backend))
 #                aff.append(backLayer(2))
         self.aff = nn.ModuleList(aff)
         self.n = n
@@ -85,14 +83,18 @@ epochnum = 200000
 
 #alpha=10
 
-model = flowGAN(12).cuda()
+model = flowGAN(5).cuda()
 optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
 if __name__ == "__main__":
-    trainingCurve = open('glowNormAdv3/curve', 'w')
+    trainingCurve = open('glowVars/curve', 'w')
     trainingCurve.write('Epoch\t\tLoss\n')
     trainingCurve.close()  
     for epoch in range(epochnum):
+        
+        """Fix this line! This should be a generator like the autoencoder.
+        This can be done later. 
+        """
         xu = Variable(d2.Column2(batchsize)).cuda()
 #        print(model.fc.weight.data)
 #        print(model.fc1.logJ())
@@ -142,8 +144,8 @@ if __name__ == "__main__":
         print('\n\n\n')
 
         if epoch%100 == 0:
-            torch.save(model, 'glowNormAdv3/epoch' + str(epoch))
-            trainingCurve = open('glowNormAdv3/curve', 'a')
+            torch.save(model, 'glowVars/epoch' + str(epoch))
+            trainingCurve = open('glowVars/curve', 'a')
             trainingCurve.write(str(epoch) + '\t\t' + str(loss) + '\n')
             trainingCurve.close()
 
