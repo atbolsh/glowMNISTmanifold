@@ -17,7 +17,7 @@ import math
 import numpy as np
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="4"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='AUTO MNIST Example')
