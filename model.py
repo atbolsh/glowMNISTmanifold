@@ -1,9 +1,5 @@
 """
-Model of 2D Columns distribution.
-
-Uses GLOW.
-
-This time, we have a spatially smooth 2d distribution to model.
+GLOW model, to create the latent space distribution.
 """
 
 from LU  import *
@@ -29,10 +25,14 @@ import os
 
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="5"
 
+dim=5
 
-
+#Now we have DataLoaders trainD and testD
+import loadingData as lD
+if __name__ == "__main__":
+    trainD, testD = lD.main(dim=dim, epoch=10)
 #Build the network
 
 class flowGAN(nn.Module):
@@ -66,7 +66,7 @@ class flowGAN(nn.Module):
 
     def sample(self, n, x = None):
         if (type(x) == type(None)):
-            x = Variable(torch.randn(n, 2)).cuda()
+            x = Variable(torch.randn(n, self.k)).cuda()
         x, _ = self.lin[-1].pushback(x)
         for i in range(1, self.n+1):
             x, _ = self.aff[-i].pushback(x)
@@ -76,76 +76,56 @@ class flowGAN(nn.Module):
 
 
 
-
-batchsize = 1000
-epochnum = 200000
+if __name__ == "__main__":
+    batchsize = 1000
+    epochnum = 200000
 
 
 #alpha=10
-
-model = flowGAN(5).cuda()
-optimizer = optim.Adam(model.parameters(), lr=1e-4)
+if __name__ == "__maine__":
+    model = flowGAN(5, k=dim).cuda()
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
 if __name__ == "__main__":
-    trainingCurve = open('glowVars/curve', 'w')
+    trainingCurve = open('glowVars/' + str(model.k) + 'D/curve', 'w')
     trainingCurve.write('Epoch\t\tLoss\n')
     trainingCurve.close()  
     for epoch in range(epochnum):
         
-        """Fix this line! This should be a generator like the autoencoder.
-        This can be done later. 
-        """
-        xu = Variable(d2.Column2(batchsize)).cuda()
-#        print(model.fc.weight.data)
-#        print(model.fc1.logJ())
-#        print(model.fc1.bias.data)
-#        print(model.fc2.logJ())
-#        print(model.fc2.bias.data)
-   
-    
-#        print(xd)
-    
-        model.train()
-        model.zero_grad()    
-        """
-        MUST PASS DATA THROUGH MODEL FIRST!
-        Important for initializing actnorm.
-        """
-        yu, lu = model(xu)
-        with torch.no_grad():
-            xd = model.sample(batchsize)
+        for i, data in enumerate(trainD):
+            batchSize = data.size(1)
+            xu = Variable(data.view(batchSize, model.k)).cuda()
+            print(xu.size())   
+            model.train()
+            model.zero_grad()    
+            yu, lu = model(xu)
+            with torch.no_grad():
+                xd = model.sample(batchsize)
 
-#        print(xu[:10])
-        print(yu[:10])
-        print((math.log(2*math.pi) + lu + 0.5*torch.sum(yu*yu, 1))[:10])
-        yd, ld = model(xd.detach())
-        pu = torch.exp(lu)
+#            print(yu[:10])
+#            print((math.log(2*math.pi) + lu + 0.5*torch.sum(yu*yu, 1))[:10])
+            yd, ld = model(xd.detach())
+            pu = torch.exp(lu)
 #        pd = torch.exp(ld)
 #        print(pd)
         
 #        loss = L(yu, target)#/batchsize # + torch.sum(ld)
-        loss = 0 - torch.sum(lu) + torch.sum(ld)
+            loss = 0 - torch.sum(lu) + torch.sum(ld)
 
-        loss.backward()
-        
-        optimizer.step()
+            loss.backward()
+            
+            optimizer.step()
         
         model.eval()
-        yu, lu = model(xu)
+        for i, data in enumerate(testD):
+            batchSize = data.size(1)
+            xu = Variable(data.view(batchSize, model.k)).cuda()      
+            yu, lu = model(xu)
 #        print('adversarial dif = ' + str(torch.sum(ld) - torch.sum(lu)))
        
-        pt = d2.columnVals2(xu)
-        print(pt[:5])
-        print(pu[:5])
-        
-        print(epoch)
-#        print(model.aff[0].b.weight)
-        print('\n')
-        print('\n\n\n')
-
-        if epoch%100 == 0:
-            torch.save(model, 'glowVars/epoch' + str(epoch))
-            trainingCurve = open('glowVars/curve', 'a')
+        if epoch%1 == 0:
+            torch.save(model, 'glowVars/' + str(model.k) + 'D/epoch' + str(epoch))
+            trainingCurve = open('glowVars/' + str(model.k) + 'D/curve', 'a')
             trainingCurve.write(str(epoch) + '\t\t' + str(loss) + '\n')
             trainingCurve.close()
 

@@ -16,8 +16,10 @@ from copy import deepcopy
 import math
 import numpy as np
 import os
+
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="3"
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='AUTO MNIST Example')
@@ -33,10 +35,11 @@ if __name__ == "__main__":
                         help='how many batches to wait before logging training status')
     parser.add_argument('--hidden', type=int, default=10, metavar='N', 
                         help='info. bottleneck dimensionality')
+#    parser.add_argument('--gpu', type=int, default=0, metavar='N', 
+#                        help='which GPU to use.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
-    
-    
+      
     torch.manual_seed(args.seed)
 
     #device = torch.device("cuda" if args.cuda else "cpu")
@@ -124,5 +127,5 @@ if __name__ == "__main__":
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
-        torch.save(model, 'autoencoders/epoch' + str(epoch))
+        torch.save(model, 'autoencoders/'+ str(args.hidden) +  'D/epoch' + str(epoch))
 

@@ -21,15 +21,6 @@ import os
 
 
 #Training epoch of autoencoder to load.
-epoch = 64
-dim   = 10
-
-fileDir = 'latent/' + str(dim) + 'D' + '/'
-
-fl     = os.listdir(fileDir)
-trainL = [fileDir + x for x in fl if x.startswith('train_e' + str(epoch))]
-testL  = [fileDir + x for x in fl if x.startswith( 'test_e' + str(epoch))]
-
 
 class fList(torch.utils.data.Dataset):
     def __init__(self, fl):
@@ -44,17 +35,27 @@ class fList(torch.utils.data.Dataset):
 
 #batch_size is 1 because that's simpler. 
 #It was already stored in unequal batches
-trainD = torch.utils.data.DataLoader(fList(trainL), batch_size=1, shuffle=True) 
-testD  = torch.utils.data.DataLoader(fList(testL),  batch_size=1, shuffle=True) 
-      
-if __name__ == '__main__':
-    for i, data in enumerate(trainD):
-        print(i)
-        print(data.size())
 
-    for i, data in enumerate(testD):
-        print(i)
-        print(data.size())
+def main(epoch=12, dim=10):
+    fileDir = 'latent/' + str(dim) + 'D' + '/'
     
+    fl     = os.listdir(fileDir)
+    trainL = [fileDir + x for x in fl if x.startswith('train_e' + str(epoch))]
+    testL  = [fileDir + x for x in fl if x.startswith( 'test_e' + str(epoch))]
+    
+    
+    trainD = torch.utils.data.DataLoader(fList(trainL), batch_size=1, shuffle=True) 
+    testD  = torch.utils.data.DataLoader(fList(testL),  batch_size=1, shuffle=True) 
+          
+    if __name__ == '__main__':
+        for i, data in enumerate(trainD):
+            print(i)
+            print(data.size())
+    
+        for i, data in enumerate(testD):
+            print(i)
+            print(data.size())
 
-
+    return trainD, testD        
+    
+    

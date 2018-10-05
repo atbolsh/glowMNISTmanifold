@@ -143,73 +143,8 @@ class affineDiscrete(nn.Module):
         
         return x, l
 
-class affineSegs(nn.Module):      
-    def __init__(self, n, maxSeg=32, k = 2, hidden=64):
-        super(affineDiscrete, self).__init__()
-        self.n = n
-        self.seg = min(n, maxSeg)
 
-        self.step  = int(n/(self.seg))
-        self.extra = self.n - self.step*self.seg
-        
-        #Sets of dimensions
-        self.sizes = [self.step+1 for k in range(self.extra)] + [self.step for k in range(self.extra, self.seg)]
-        self.t1_bases = [0] + [torch.sum(self.sizes[:i]) for i in range(1, self.seg)]
-        self.t2_bases = [torch.sum(self.sizes[i+1:]) for i in range(0, self.seg - 1)] + [0]
-        
-        self.t1 = nn.ModuleList([transformerFC(self.t1_bases[i], self.sizes[i], k, hidden, True)  for i in range(1, self.seg)])
-        self.t2 = nn.ModuleList([transformerFC(self.t2_bases[i], self.sizes[i], k, hidden, False) for i in range(0, self.seg-1)])
-
-    def _t1_forward(self, x, i):
-        """Forward step for the ith segment, on t1""" 
-        s = x.size(0)
-        
-        #Slice of dimensions to be pushed through
-        target = x[:, self.t1_bases[i].view(s, self.sizes[i])
-        
-        #Base for the transformer
-        base   = x[:, :sum(self.sizes[:i])].view(s, sum(self.sizes[:i]))
-        
-        return self.t1[i - 1](target, base)
-    
-    def forward(self, x):
-        s = x.size(0)
-        #This could be parallelized . . . not sure how. Look up special torch structures.
-        ys = [self.t1[i-1](x[:, i].view(s, 1), x[:, :i].view(s, i)) for i in range(1, self.n)]
-        l = sum([q[1] for q in ys])
-        y = torch.cat(tuple([x[:, 0].view(s, 1)] + [q[0] for q in ys]), 1)
-        print(y[0])
-        for i in range(self.n-1, 0, -1):
-            print(y[0, -1-i].view(1, 1))
-
-        zs = [self.t2[-i](y[:, -1-i].view(s, 1), y[:, -i:].view(s, i)) for i in range(self.n - 1, 0, -1)]
-        j = sum([q[1] for q in zs])
-        z = torch.cat(tuple([q[0] for q in zs] + [y[:, -1].view(s, 1)]), 1)
-
-        return z, l+j
-        
-    def pushback(self, z):
-        s = z.size(0)
-
-        l = 0.
-        y = z[:, -1].view(s, 1) + 0
-#        print(y.size())
-
-        for i in range(1, self.n):
-            ny, nl = self.t2[-i].pushback(z[:, -1-i].view(s, 1), y)
-            l = nl + l
-            y = torch.cat((ny, y), 1)
-#            print(y.size())
-
-        x = y[:, 0].view(s, 1) 
-        for i in range(1, self.n):
-            nx, nl = self.t1[i-1].pushback(y[:, i].view(s, 1), x)
-            l = nl + l
-            x = torch.cat((x, nx), 1)
-        
-        return x, l
-
-
+#DOESN'T WORK! FIX!
 #Intermediate, flexible compromise
 class affineSteps(nn.Module):      
     def __init__(self, n, maxSeg = 32, k = 2, hidden=64):
@@ -219,10 +154,11 @@ class affineSteps(nn.Module):
 
         self.step  = int(n/(self.seg))
         self.extra = self.n - self.step*self.seg
-        
+
         #Sets of dimensions
         self.sizes = [self.step+1 for k in range(self.extra)] + [self.step for k in range(self.extra, self.seg)]
-        
+        print(self.sizes)        
+       
         self.t1 = nn.ModuleList([transformerFC(sum(self.sizes[:i]),  self.sizes[i],    k,  hidden, True)  for i in range(1, self.seg)])
         self.t2 = nn.ModuleList([transformerFC(sum(self.sizes[-i:]), self.sizes[-1-i], k,  hidden, False) for i in range(self.seg -1, 0, -1)])
     
@@ -261,7 +197,7 @@ class affineSteps(nn.Module):
 #        print(y.size())
         print(y[0])
 
-        zs = [self._t2_forward(x, i) for i in range(self.seg - 1, 0, -1)]
+        zs = [self._t2_forward(x, i) for i in range(self.seg- 1, 0, -1)]
         j = sum([q[1] for q in zs])
         z = torch.cat(tuple([q[0] for q in zs] + [y[:, -self.sizes[-1]:].view(s, self.sizes[-1])]), 1)
 
